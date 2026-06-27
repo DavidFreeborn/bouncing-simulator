@@ -135,7 +135,7 @@ input[type="range"]{width:100%;margin-top:8px;accent-color:var(--blue)}
       <div class="barRow"><span>Rigid ball + surface</span><div class="bar"><div id="barSurf"></div></div><span id="soloSurf">—</span></div>
       <div class="barRow"><span>Coupled ball + surface</span><div class="bar"><div id="barBoth"></div></div><span id="soloBoth">—</span></div>
     </div>
-    <div class="compareNote" id="compareHint">Rebound ratio = peak rebound height ÷ drop height.</div>
+    <div class="compareNote" id="compareHint">Rebound ratio = highest free-flight height after first impact ÷ drop height.</div>
   </aside>
 </main>
 <section class="scanCard">
@@ -144,7 +144,7 @@ input[type="range"]{width:100%;margin-top:8px;accent-color:var(--blue)}
       <div><h2>Frequency scan</h2></div>
       <div class="scanButtons"><button id="scan">Rescan</button></div>
     </div>
-    <div class="scanNote">Scan shows coupled ball + surface rebound. Fixed: masses, damping, drop height. Varied: natural frequencies.</div>
+    <div class="scanNote">Scan shows coupled ball + surface rebound using the same free-flight height ratio. Fixed: masses, damping, drop height. Varied: natural frequencies.</div>
     <div class="scanLegend" aria-label="Frequency scan legend">
       <div class="legendScaleBlock">
         <div class="legendCaption">Rebound ratio</div>
@@ -176,7 +176,7 @@ const ro = {
   barBall:document.getElementById('barBall'), barSurf:document.getElementById('barSurf'), barBoth:document.getElementById('barBoth'), soloBall:document.getElementById('soloBall'), soloSurf:document.getElementById('soloSurf'), soloBoth:document.getElementById('soloBoth'), compareHint:document.getElementById('compareHint')
 };
 const presets = {
-  dead:{ballFreq:15, surfFreq:40, ballDamp:0.008, surfDamp:0.008, ballMass:0.25, surfMass:0.35, drop:0.50, speed:0.12},
+  dead:{ballFreq:57, surfFreq:11, ballDamp:0.042, surfDamp:0.046, ballMass:0.07, surfMass:0.17, drop:0.50, speed:0.12},
   hard:{ballFreq:40, surfFreq:90, ballDamp:0.020, surfDamp:0.030, ballMass:0.25, surfMass:2.00, drop:0.50, speed:0.12},
   boost:{ballFreq:62.5, surfFreq:62.5, ballDamp:0.006, surfDamp:0.006, ballMass:0.25, surfMass:0.35, drop:0.50, speed:0.10},
   mismatch:{ballFreq:40, surfFreq:20, ballDamp:0.008, surfDamp:0.008, ballMass:0.25, surfMass:0.35, drop:0.50, speed:0.12}
@@ -283,8 +283,7 @@ class Simulator{
     return {trans,modes,grav,total:trans+modes+grav};
   }
   ratio(){
-    const r=this.reboundPeak!==null ? this.reboundPeak : this.reboundLive;
-    return Math.max(0,r/this.p.drop);
+    return Math.max(0,this.reboundLive/this.p.drop);
   }
 }
 function setPreset(name){
