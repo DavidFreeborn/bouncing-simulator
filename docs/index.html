@@ -133,7 +133,7 @@ input[type="range"]{width:100%;margin-top:8px;accent-color:var(--blue)}
     <div class="compare">
       <div class="barRow"><span>Ball + rigid surface</span><div class="bar"><div id="barBall"></div></div><span id="soloBall">—</span></div>
       <div class="barRow"><span>Rigid ball + surface</span><div class="bar"><div id="barSurf"></div></div><span id="soloSurf">—</span></div>
-      <div class="barRow"><span>Ball + surface</span><div class="bar"><div id="barBoth"></div></div><span id="soloBoth">—</span></div>
+      <div class="barRow"><span>Coupled ball + surface</span><div class="bar"><div id="barBoth"></div></div><span id="soloBoth">—</span></div>
     </div>
     <div class="compareNote" id="compareHint">Rebound ratio = peak rebound height ÷ drop height.</div>
   </aside>
@@ -144,7 +144,7 @@ input[type="range"]{width:100%;margin-top:8px;accent-color:var(--blue)}
       <div><h2>Frequency scan</h2></div>
       <div class="scanButtons"><button id="scan">Rescan</button></div>
     </div>
-    <div class="scanNote">Fixed during scan: masses, damping ratios, and drop height. Varied: the two natural frequencies.</div>
+    <div class="scanNote">Scan shows coupled ball + surface rebound. Fixed: masses, damping, drop height. Varied: natural frequencies.</div>
     <div class="scanLegend" aria-label="Frequency scan legend">
       <div class="legendScaleBlock">
         <div class="legendCaption">Rebound ratio</div>
@@ -181,7 +181,7 @@ const presets = {
   boost:{ballFreq:62.5, surfFreq:62.5, ballDamp:0.006, surfDamp:0.006, ballMass:0.25, surfMass:0.35, drop:0.50, speed:0.10},
   mismatch:{ballFreq:40, surfFreq:20, ballDamp:0.008, surfDamp:0.008, ballMass:0.25, surfMass:0.35, drop:0.50, speed:0.12}
 };
-let params = {}, sim, playing = true, lastStamp = performance.now(), compareTimer = 0, currentHeat = null, resetTimer = 0;
+let params = {}, sim, playing = true, lastStamp = performance.now(), compareTimer = 0, currentHeat = null, resetTimer = 0, scanTimer = 0, scanToken = 0;
 
 function derive(p){
   const q = {...p};
@@ -213,6 +213,18 @@ function updateReadouts(){
   ro.speedVal.textContent = `${params.speed.toFixed(2)}×`;
   if(sim) sim.p = {...params};
   drawHeatmap();
+}
+function scanFixedKey(p=params){
+  return [p.ballMass,p.surfMass,p.ballDamp,p.surfDamp,p.drop].map(v=>Number(v).toFixed(6)).join('|');
+}
+function invalidateScan(){
+  scanToken++;
+  currentHeat=null;
+  drawHeatmap();
+}
+function scheduleScan(delay=300){
+  clearTimeout(scanTimer);
+  scanTimer=setTimeout(scanLandscape,delay);
 }
 class Simulator{
   constructor(p){ this.p={...p}; this.reset(); }
@@ -279,7 +291,7 @@ function setPreset(name){
   const p=presets[name];
   for(const k of ids) el[k].value=p[k];
   document.querySelectorAll('.preset').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.preset===name)));
-  updateReadouts(); resetTrial(); scheduleCompare();
+  updateReadouts(); resetTrial(); scheduleCompare(); invalidateScan(); scheduleScan(350);
 }
 function resetTrial(){ sim=new Simulator(params); lastStamp=performance.now(); drawCharts(); }
 function integrate(realDt){
@@ -376,18 +388,22 @@ function drawCharts(){
   plotSeries(energyCtx,energyCanvas,sim.energyTrace,d=>d.grav,0,Emax,'#047857',2.1);
   label(energyCtx,54,15,'#2563eb','translation'); label(energyCtx,125,15,'#d97706','vibration'); label(energyCtx,190,15,'#047857','gravitational');
 }
-function quickRebound(overrides={},tmax=2.0,dt=0.0005){ const p=derive({...params,...overrides}); const s=new Simulator(p); const n=Math.floor(tmax/dt); for(let i=0;i<n;i++) s.step(dt); return Math.min(1.25,s.ratio()); }
+function quickRebound(overrides={},tmax=2.2,dt=0.0005,base=params){ const p=derive({...base,...overrides}); const s=new Simulator(p); const n=Math.floor(tmax/dt); for(let i=0;i<n;i++) s.step(dt); return Math.min(1.25,s.ratio()); }
 function scheduleCompare(){ clearTimeout(compareTimer); compareTimer=setTimeout(runCompare,180); }
 function runCompare(){ const ball=quickRebound({surfFreq:90,surfMass:2.0,surfDamp:0.03},1.8,0.00055); const surf=quickRebound({ballFreq:90,ballDamp:0.005},1.8,0.00055); const both=quickRebound({},2.2,0.00050); setBar(ro.barBall,ro.soloBall,ball); setBar(ro.barSurf,ro.soloSurf,surf); setBar(ro.barBoth,ro.soloBoth,both); }
 function setBar(bar,label,val){ bar.style.width=`${Math.round(Math.min(1,val)*100)}%`; label.textContent=`${val.toFixed(2)}×`; }
 function scanLandscape(){
   const nX=201,nY=201,minB=5,maxB=90,minS=5,maxS=90;
-  currentHeat={cells:[],nX,nY,minB,maxB,minS,maxS,best:{r:Infinity,fb:0,fs:0},highest:{r:-Infinity,fb:0,fs:0},running:true};
+  const token=++scanToken;
+  const scanBase={...params};
+  const fixedKey=scanFixedKey(scanBase);
+  currentHeat={cells:[],nX,nY,minB,maxB,minS,maxS,best:{r:Infinity,fb:0,fs:0},highest:{r:-Infinity,fb:0,fs:0},running:true,fixedKey};
   drawHeatmap(); let j=0;
   function row(){
+    if(token!==scanToken) return;
     for(let i=0;i<nX;i++){
       const fb=minB+i*(maxB-minB)/(nX-1), fs=maxS-j*(maxS-minS)/(nY-1);
-      const r=quickRebound({ballFreq:fb,surfFreq:fs},1.6,0.00075);
+      const r=quickRebound({ballFreq:fb,surfFreq:fs},2.2,0.00075,scanBase);
       currentHeat.cells.push({i,j,fb,fs,r});
       if(r<currentHeat.best.r) currentHeat.best={r,fb,fs};
       if(r>currentHeat.highest.r) currentHeat.highest={r,fb,fs};
@@ -406,7 +422,7 @@ function drawHeatmap(){
   const x0=pad.l + (availW-side)/2;
   const y0=pad.t + (availH-side)/2;
   c.strokeStyle='#d8dee9'; c.lineWidth=1; c.strokeRect(x0,y0,side,side);
-  if(currentHeat){
+  if(currentHeat && currentHeat.fixedKey===scanFixedKey(params)){
     const {cells,nX,nY,minB,maxB,minS,maxS,best,highest}=currentHeat, cw=side/nX, ch=side/nY;
     for(const cell of cells){ c.fillStyle=heatColour(cell.r); c.fillRect(x0+cell.i*cw,y0+cell.j*ch,Math.ceil(cw)+1,Math.ceil(ch)+1); }
     marker(x0+(params.ballFreq-minB)/(maxB-minB)*side, y0+(maxS-params.surfFreq)/(maxS-minS)*side, '#ffffff', '#111827', 7);
@@ -454,11 +470,27 @@ function bind(){
   document.getElementById('scan').addEventListener('click',scanLandscape);
   document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>setPreset(b.dataset.preset)));
   ids.forEach(id=>{
-    el[id].addEventListener('input',()=>{ document.querySelectorAll('.preset').forEach(b=>b.setAttribute('aria-pressed','false')); updateReadouts(); if(id!=='speed'){ clearTimeout(resetTimer); resetTimer=setTimeout(()=>{ resetTrial(); scheduleCompare(); },80); } });
-    el[id].addEventListener('change',()=>{ updateReadouts(); if(id!=='speed'){ resetTrial(); scheduleCompare(); } });
+    el[id].addEventListener('input',()=>{
+      document.querySelectorAll('.preset').forEach(b=>b.setAttribute('aria-pressed','false'));
+      const fixedChanged=!['ballFreq','surfFreq','speed'].includes(id);
+      updateReadouts();
+      if(fixedChanged) invalidateScan();
+      if(id!=='speed'){
+        clearTimeout(resetTimer);
+        resetTimer=setTimeout(()=>{ resetTrial(); scheduleCompare(); },80);
+      }
+    });
+    el[id].addEventListener('change',()=>{
+      const fixedChanged=!['ballFreq','surfFreq','speed'].includes(id);
+      updateReadouts();
+      if(id!=='speed'){
+        resetTrial(); scheduleCompare();
+        if(fixedChanged) scheduleScan(350);
+      }
+    });
   });
 }
-bind(); setPreset('dead'); drawHeatmap(); requestAnimationFrame(frame); setTimeout(scanLandscape,500);
+bind(); setPreset('dead'); drawHeatmap(); requestAnimationFrame(frame);
 })();
 </script>
 </body>
