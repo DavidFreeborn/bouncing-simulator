@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bouncing Simulator | David Freeborn</title>
+<meta name="description" content="A physical simulator showing how mass, damping, and vibration affect rebound from a surface." />
+<link rel="canonical" href="https://www.davidpeterwallisfreeborn.com/fun/bouncing-simulator/" />
+<meta property="og:title" content="Bouncing Simulator" />
+<meta property="og:description" content="A physical simulator showing how mass, damping, and vibration affect rebound from a surface." />
+<meta property="og:url" content="https://www.davidpeterwallisfreeborn.com/fun/bouncing-simulator/" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Bouncing Simulator" />
+<meta name="twitter:description" content="A physical simulator showing how mass, damping, and vibration affect rebound from a surface." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #1a1a1a;
+  --muted: #555555;
+  --border: #d0d0d0;
+  --border-light: #e8e8e8;
+  --accent: #2563eb;
+  --grey: #64748b;
+  --orange: #d97706;
+  --red: #b91c1c;
+  --green: #047857;
+  --font-serif: "EB Garamond", Georgia, "Times New Roman", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 2px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+a { color: var(--accent); }
+.back-nav {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 0;
+}
+.back-nav a {
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+.back-nav a:hover { text-decoration: underline; }
+header {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0.5rem 1.5rem 0.75rem;
+}
+h1 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.shell {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 1.5rem 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(700px, 1fr) 340px;
+  gap: 1rem;
+  align-items: start;
+}
+.canvas-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.canvasWrap {
+  padding: 1rem;
+}
+#world {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.chartPanel {
+  padding: 0.75rem;
+  border-right: 1px solid var(--border-light);
+}
+.chartPanel:last-child { border-right: 0; }
+.chartTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+}
+.chartPanel canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: #fff;
+}
+.controls-panel { padding: 1rem; }
+.presetBox {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-light);
+}
+.presetGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.presetBox .sectionTitle { margin: 0 0 0.5rem; }
+button {
+  font: inherit;
+  font-size: 0.8125rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+button:hover { background: #f5f5f5; }
+button.primary {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
+}
+button.primary:hover { background: #333; }
+button.preset {
+  text-align: center;
+  min-height: 2.5rem;
+  font-weight: 600;
+  padding: 0.5rem;
+}
+button.preset[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: #f0f7ff;
+}
+.topActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.topActions button { flex: 1; }
+.sectionTitle {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+}
+.control {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border-light);
+}
+.control:first-of-type { border-top: 0; }
+.control label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.control output {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+input[type="range"] {
+  width: 100%;
+  margin-top: 0.375rem;
+  accent-color: var(--accent);
+}
+.compare {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.barRow {
+  display: grid;
+  grid-template-columns: 140px 1fr 3rem;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.bar {
+  height: 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: #f5f5f5;
+  overflow: hidden;
+}
+.bar div {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: var(--radius);
+}
+.compareNote {
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.scanCard {
+  max-width: 1440px;
+  margin: 0 auto 2rem;
+  padding: 0 1.5rem;
+}
+.scanInner {
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--border);
+}
+.scanTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.scanTop h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.scanTop .scanButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+.scanNote {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+  max-width: 700px;
+}
+.scanLegend {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 0;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border-light);
+}
+.legendScaleBlock {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.legendCaption {
+  font-weight: 600;
+  color: var(--text);
+  padding-bottom: 1rem;
+}
+.legendBarWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.legendBar {
+  width: 300px;
+  max-width: 60vw;
+  height: 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: linear-gradient(90deg, #2166e3 0%, #7aa8ff 22%, #f8fafc 50%, #f2ae49 78%, #c4451c 100%);
+}
+.legendTicks {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+.legendMarkers {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.markerKey {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  white-space: nowrap;
+}
+.markerCircle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #111827;
+  background: #fff;
+  display: inline-block;
+}
+.markerPlus {
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--green);
+  font-weight: 700;
+}
+.markerX {
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--red);
+  font-weight: 700;
+}
+#heatmap {
+  display: block;
+  width: min(100%, 900px);
+  height: auto;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+@media (max-width: 1180px) {
+  .shell { grid-template-columns: 1fr; }
+  .charts { grid-template-columns: 1fr; }
+  .chartPanel { border-right: 0; border-bottom: 1px solid var(--border-light); }
+  .chartPanel:last-child { border-bottom: 0; }
+}
+@media (max-width: 700px) {
+  header, .shell, .scanCard { padding-left: 1rem; padding-right: 1rem; }
+  .presetGrid { grid-template-columns: 1fr; }
+  .barRow { grid-template-columns: 120px 1fr 2.5rem; }
+}
+</style>
+</head>
+<body>
+<nav class="back-nav"><a href="/fun/">← Back to Visualisations</a></nav>
+<header>
+  <h1>Bouncing Simulator</h1>
+</header>
+<main class="shell">
+  <section class="canvas-section" aria-label="Bouncing simulator visualisation">
+    <div class="canvasWrap"><canvas id="world" width="1080" height="660"></canvas></div>
+    <div class="charts">
+      <div class="chartPanel">
+        <div class="chartTitle">Ball centre height, m</div>
+        <canvas id="heightChart" width="340" height="220"></canvas>
+      </div>
+      <div class="chartPanel">
+        <div class="chartTitle">Surface displacement, m</div>
+        <canvas id="surfaceChart" width="340" height="220"></canvas>
+      </div>
+      <div class="chartPanel">
+        <div class="chartTitle">Energy, J</div>
+        <canvas id="energyChart" width="340" height="220"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <aside class="controls-panel" aria-label="Controls">
+    <div class="presetBox">
+      <div class="sectionTitle">Presets</div>
+      <div class="presetGrid" aria-label="Simulation presets">
+        <button class="preset" data-preset="dead">Suppressed rebound</button>
+        <button class="preset" data-preset="hard">Rigid surface reference</button>
+        <button class="preset" data-preset="boost">Strong rebound</button>
+        <button class="preset" data-preset="mismatch">Ordinary rebound</button>
+      </div>
+    </div>
+
+    <div class="topActions">
+      <button class="primary" id="playPause">Pause</button>
+      <button id="reset">Reset trial</button>
+    </div>
+
+    <div class="sectionTitle">Tuning</div>
+    <div class="control"><label for="ballFreq">Ball frequency <output id="ballFreqVal"></output></label><input id="ballFreq" type="range" min="5" max="90" step="0.5"></div>
+    <div class="control"><label for="surfFreq">Surface frequency <output id="surfFreqVal"></output></label><input id="surfFreq" type="range" min="5" max="90" step="0.5"></div>
+    <div class="control"><label for="ballDamp">Ball damping <output id="ballDampVal"></output></label><input id="ballDamp" type="range" min="0" max="0.20" step="0.002"></div>
+    <div class="control"><label for="surfDamp">Surface damping <output id="surfDampVal"></output></label><input id="surfDamp" type="range" min="0" max="0.20" step="0.002"></div>
+
+    <div class="sectionTitle">Physical</div>
+    <div class="control"><label for="ballMass">Ball mass <output id="ballMassVal"></output></label><input id="ballMass" type="range" min="0.05" max="2.00" step="0.01"></div>
+    <div class="control"><label for="surfMass">Surface mass <output id="surfMassVal"></output></label><input id="surfMass" type="range" min="0.05" max="2.00" step="0.01"></div>
+    <div class="control"><label for="drop">Drop height <output id="dropVal"></output></label><input id="drop" type="range" min="0.10" max="1.00" step="0.01"></div>
+    <div class="control"><label for="speed">Speed <output id="speedVal"></output></label><input id="speed" type="range" min="0.02" max="0.30" step="0.01"></div>
+
+    <div class="sectionTitle">Rebound ratios</div>
+    <div class="compare">
+      <div class="barRow"><span>Ball + rigid surface</span><div class="bar"><div id="barBall"></div></div><span id="soloBall">—</span></div>
+      <div class="barRow"><span>Rigid ball + surface</span><div class="bar"><div id="barSurf"></div></div><span id="soloSurf">—</span></div>
+      <div class="barRow"><span>Coupled ball + surface</span><div class="bar"><div id="barBoth"></div></div><span id="soloBoth">—</span></div>
+    </div>
+    <div class="compareNote" id="compareHint">Rebound ratio = highest free-flight height after first impact ÷ drop height.</div>
+  </aside>
+</main>
+<section class="scanCard">
+  <div class="scanInner">
+    <div class="scanTop">
+      <div><h2>Frequency scan</h2></div>
+      <div class="scanButtons"><button id="scan">Rescan</button></div>
+    </div>
+    <div class="scanNote">Rebound ratio across frequency combinations. Masses, damping, and drop height held fixed.</div>
+    <div class="scanLegend" aria-label="Frequency scan legend">
+      <div class="legendScaleBlock">
+        <div class="legendCaption">Rebound ratio</div>
+        <div class="legendBarWrap">
+          <div class="legendBar"></div>
+          <div class="legendTicks"><span>0</span><span>0.25</span><span>0.50</span><span>0.75</span><span>1.00</span><span>1.25</span></div>
+        </div>
+      </div>
+      <div class="legendMarkers"><span class="markerKey"><span class="markerCircle"></span>current</span><span class="markerKey"><span class="markerPlus">+</span>lowest</span><span class="markerKey"><span class="markerX">×</span>highest</span></div>
+    </div>
+    <canvas id="heatmap" width="1100" height="1100" aria-label="Frequency scan heatmap"></canvas>
+  </div>
+</section>
+<script>
+(() => {
+'use strict';
+const plotDuration = 8.0;
+const world = document.getElementById('world'), ctx = world.getContext('2d');
+const heightCanvas = document.getElementById('heightChart'), heightCtx = heightCanvas.getContext('2d');
+const surfaceCanvas = document.getElementById('surfaceChart'), surfaceCtx = surfaceCanvas.getContext('2d');
+const energyCanvas = document.getElementById('energyChart'), energyCtx = energyCanvas.getContext('2d');
+const heatmap = document.getElementById('heatmap'), heatCtx = heatmap.getContext('2d');
+const ids = ['ballFreq','surfFreq','ballDamp','surfDamp','ballMass','surfMass','drop','speed'];
+const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+const ro = {
+  ballFreqVal:document.getElementById('ballFreqVal'), surfFreqVal:document.getElementById('surfFreqVal'),
+  ballDampVal:document.getElementById('ballDampVal'), surfDampVal:document.getElementById('surfDampVal'),
+  ballMassVal:document.getElementById('ballMassVal'), surfMassVal:document.getElementById('surfMassVal'), dropVal:document.getElementById('dropVal'), speedVal:document.getElementById('speedVal'),
+  barBall:document.getElementById('barBall'), barSurf:document.getElementById('barSurf'), barBoth:document.getElementById('barBoth'), soloBall:document.getElementById('soloBall'), soloSurf:document.getElementById('soloSurf'), soloBoth:document.getElementById('soloBoth'), compareHint:document.getElementById('compareHint')
+};
+const presets = {
+  dead:{ballFreq:57, surfFreq:11, ballDamp:0.042, surfDamp:0.046, ballMass:0.07, surfMass:0.17, drop:0.50, speed:0.12},
+  hard:{ballFreq:40, surfFreq:90, ballDamp:0.020, surfDamp:0.030, ballMass:0.25, surfMass:2.00, drop:0.50, speed:0.12},
+  boost:{ballFreq:62.5, surfFreq:62.5, ballDamp:0.006, surfDamp:0.006, ballMass:0.25, surfMass:0.35, drop:0.50, speed:0.10},
+  mismatch:{ballFreq:40, surfFreq:20, ballDamp:0.008, surfDamp:0.008, ballMass:0.25, surfMass:0.35, drop:0.50, speed:0.12}
+};
+let params = {}, sim, playing = true, lastStamp = performance.now(), compareTimer = 0, currentHeat = null, resetTimer = 0, scanTimer = 0, scanToken = 0;
+
+function derive(p){
+  const q = {...p};
+  q.g = 9.81; q.radius = 0.075; q.contactK = 10000; q.contactC = 0;
+  const mu = q.ballMass/4;
+  q.ballK = Math.pow(2*Math.PI*q.ballFreq,2) * q.ballMass/4;
+  q.ballC = 2*q.ballDamp*Math.sqrt(q.ballK*mu);
+  q.surfK = Math.pow(2*Math.PI*q.surfFreq,2) * q.surfMass;
+  q.surfC = 2*q.surfDamp*Math.sqrt(q.surfK*q.surfMass);
+  return q;
+}
+function readControls(){
+  return derive({
+    ballFreq:+el.ballFreq.value, surfFreq:+el.surfFreq.value,
+    ballDamp:+el.ballDamp.value, surfDamp:+el.surfDamp.value,
+    ballMass:+el.ballMass.value, surfMass:+el.surfMass.value,
+    drop:+el.drop.value, speed:+el.speed.value
+  });
+}
+function updateReadouts(){
+  params = readControls();
+  ro.ballFreqVal.textContent = `${params.ballFreq.toFixed(1)} Hz`;
+  ro.surfFreqVal.textContent = `${params.surfFreq.toFixed(1)} Hz`;
+  ro.ballDampVal.textContent = `${params.ballDamp.toFixed(3)}`;
+  ro.surfDampVal.textContent = `${params.surfDamp.toFixed(3)}`;
+  ro.ballMassVal.textContent = `${params.ballMass.toFixed(2)} kg`;
+  ro.surfMassVal.textContent = `${params.surfMass.toFixed(2)} kg`;
+  ro.dropVal.textContent = `${params.drop.toFixed(2)} m`;
+  ro.speedVal.textContent = `${params.speed.toFixed(2)}×`;
+  if(sim) sim.p = {...params};
+  drawHeatmap();
+}
+function scanFixedKey(p=params){
+  return [p.ballMass,p.surfMass,p.ballDamp,p.surfDamp,p.drop].map(v=>Number(v).toFixed(6)).join('|');
+}
+function invalidateScan(){
+  scanToken++;
+  currentHeat=null;
+  drawHeatmap();
+}
+function scheduleScan(delay=300){
+  clearTimeout(scanTimer);
+  scanTimer=setTimeout(scanLandscape,delay);
+}
+class Simulator{
+  constructor(p){ this.p={...p}; this.reset(); }
+  reset(){
+    const p=this.p, L=2*p.radius;
+    this.yT=-p.drop-L; this.yB=-p.drop; this.yS=0;
+    this.vT=0; this.vB=0; this.vS=0; this.t=0;
+    this.hadContact=false; this.inContact=false; this.contactStart=null; this.contactAccum=0;
+    this.reboundPeak=null; this.reboundLive=0; this.prevSepV=0; this.nextSample=0;
+    this.trace=[]; this.energyTrace=[]; this.initialEnergy=Math.max(1e-9,this.energy().total);
+    this.pushHistory();
+  }
+  step(dt){
+    const p=this.p, m1=p.ballMass/2, m2=p.ballMass/2, ms=p.surfMass, L=2*p.radius;
+    const stretch=(this.yB-this.yT)-L, relv=this.vB-this.vT;
+    const Fs=p.ballK*stretch + p.ballC*relv;
+    let FT=m1*p.g+Fs, FB=m2*p.g-Fs, FS=-p.surfK*this.yS-p.surfC*this.vS;
+    const pen=this.yB-this.yS; let now=false;
+    if(pen>0){
+      let Fc=p.contactK*pen + p.contactC*(this.vB-this.vS);
+      if(Fc<0) Fc=0;
+      if(Fc>0){ FB-=Fc; FS+=Fc; now=true; }
+    }
+    if(now && !this.inContact) this.contactStart=this.t;
+    if(!now && this.inContact){
+      if(this.contactStart!==null) this.contactAccum += this.t-this.contactStart;
+      this.prevSepV=this.vB;
+    }
+    if(now) this.hadContact=true;
+    this.inContact=now;
+    this.vT += (FT/m1)*dt; this.vB += (FB/m2)*dt; this.vS += (FS/ms)*dt;
+    this.yT += this.vT*dt; this.yB += this.vB*dt; this.yS += this.vS*dt;
+    this.t += dt;
+    if(this.hadContact && !this.inContact){
+      const h=Math.max(0,-(this.yT+this.yB)/2);
+      this.reboundLive=Math.max(this.reboundLive,h);
+      if(this.prevSepV<0 && this.vB>=0 && this.reboundPeak===null) this.reboundPeak=h;
+      this.prevSepV=this.vB;
+    }
+    if(this.t>=this.nextSample && this.t<=plotDuration){
+      this.pushHistory();
+      this.nextSample += 1/120;
+    }
+  }
+  pushHistory(){
+    const e=this.energy();
+    this.trace.push({t:this.t, ballHeight:Math.max(-0.10,-(this.yT+this.yB)/2), surface:this.yS});
+    this.energyTrace.push({t:this.t, trans:e.trans, modes:e.modes, grav:e.grav, total:e.total});
+  }
+  energy(){
+    const p=this.p, L=2*p.radius, m1=p.ballMass/2, m2=p.ballMass/2;
+    const stretch=(this.yB-this.yT)-L;
+    const trans=0.5*m1*this.vT*this.vT + 0.5*m2*this.vB*this.vB + 0.5*p.surfMass*this.vS*this.vS;
+    const modes=0.5*p.ballK*stretch*stretch + 0.5*p.surfK*this.yS*this.yS;
+    const grav=-(m1*p.g*this.yT + m2*p.g*this.yB);
+    return {trans,modes,grav,total:trans+modes+grav};
+  }
+  ratio(){
+    return Math.max(0,this.reboundLive/this.p.drop);
+  }
+}
+function setPreset(name){
+  const p=presets[name];
+  for(const k of ids) el[k].value=p[k];
+  document.querySelectorAll('.preset').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.preset===name)));
+  updateReadouts(); resetTrial(); scheduleCompare(); invalidateScan(); scheduleScan(350);
+}
+function resetTrial(){ sim=new Simulator(params); lastStamp=performance.now(); drawCharts(); }
+function integrate(realDt){
+  if(!playing || !sim) return;
+  const target=Math.min(realDt,0.04)*params.speed;
+  const maxDt=0.00016;
+  const steps=Math.max(1,Math.min(420,Math.ceil(target/maxDt)));
+  const dt=target/steps;
+  for(let i=0;i<steps;i++) sim.step(dt);
+}
+function worldScale(){ return Math.min(540, 405/(params.drop+params.radius)); }
+function worldY(y){ return 510 + y*worldScale(); }
+function drawWorld(){
+  const w=world.width,h=world.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+
+  const cx=w/2;
+  const scale=worldScale();
+  const shellR=params.radius*scale*1.28;
+  const ballCentreY=worldY((sim.yT+sim.yB)/2);
+  const topMassY=worldY(sim.yT);
+  const bottomMassY=worldY(sim.yB);
+  const innerMassR=Math.max(8,shellR*0.13);
+
+  const surfMassR=Math.max(12,shellR*0.18);
+  const surfMassY=worldY(sim.yS) + surfMassR;
+  // Fixed support: independent of the moving surface coordinate.
+  const anchorY=worldY(0) + shellR*2.25;
+  const anchorSize=Math.max(26,shellR*0.55);
+
+  ctx.save();
+  ctx.strokeStyle='#edf1f5'; ctx.lineWidth=1;
+  for(let y=78;y<=h-70;y+=76){ ctx.beginPath(); ctx.moveTo(92,y); ctx.lineTo(w-92,y); ctx.stroke(); }
+  ctx.restore();
+
+  // ball shell
+  ctx.save();
+  ctx.fillStyle='#fbfdff'; ctx.strokeStyle='#2563eb'; ctx.lineWidth=2.6;
+  ctx.beginPath(); ctx.arc(cx,ballCentreY,shellR,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+
+  // ball internal spring and masses
+  drawSpring(ctx,cx,topMassY+innerMassR,cx,bottomMassY-innerMassR,10,8,'#2563eb',2.4);
+  drawMass(ctx,cx,topMassY,innerMassR,'#2563eb','#ffffff');
+  drawMass(ctx,cx,bottomMassY,innerMassR,'#2563eb','#ffffff');
+
+  // fixed anchor for surface oscillator
+  ctx.save();
+  ctx.fillStyle='#e5e7eb'; ctx.strokeStyle='#64748b'; ctx.lineWidth=2;
+  ctx.fillRect(cx-anchorSize/2, anchorY-anchorSize/2, anchorSize, anchorSize);
+  ctx.strokeRect(cx-anchorSize/2, anchorY-anchorSize/2, anchorSize, anchorSize);
+  ctx.restore();
+
+  // surface oscillator with one fixed end
+  drawSpring(ctx,cx,surfMassY+surfMassR,cx,anchorY-anchorSize/2,10,8,'#64748b',2.4);
+  drawMass(ctx,cx,surfMassY,surfMassR,'#64748b','#ffffff');
+
+  ctx.save();
+  ctx.fillStyle='#475569';
+  ctx.font='12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+  ctx.fillText(`t = ${sim.t.toFixed(2)} s`,24,28);
+  ctx.restore();
+}
+function drawMass(c,x,y,r,stroke,fill){ c.save(); c.fillStyle=fill; c.strokeStyle=stroke; c.lineWidth=2.4; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); c.stroke(); c.restore(); }
+function drawSpring(c,x1,y1,x2,y2,amp,coils,color,lw=2){ c.save(); c.strokeStyle=color; c.lineWidth=lw; c.lineCap='round'; c.lineJoin='round'; const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1, ux=dx/len,uy=dy/len, px=-uy,py=ux; c.beginPath(); c.moveTo(x1,y1); for(let i=1;i<coils*2;i++){ const f=i/(coils*2), off=(i%2?amp:-amp); c.lineTo(x1+dx*f+px*off,y1+dy*f+py*off); } c.lineTo(x2,y2); c.stroke(); c.restore(); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function drawChartFrame(c,can,titleY,minY,maxY){
+  const w=can.width,h=can.height,p={l:44,r:12,t:24,b:32};
+  c.clearRect(0,0,w,h); c.fillStyle='#fff'; c.fillRect(0,0,w,h);
+  c.strokeStyle='#e5e7eb'; c.lineWidth=1;
+  for(let i=0;i<=4;i++){ const y=p.t+i*(h-p.t-p.b)/4; c.beginPath(); c.moveTo(p.l,y); c.lineTo(w-p.r,y); c.stroke(); }
+  for(let i=0;i<=4;i++){ const x=p.l+i*(w-p.l-p.r)/4; c.beginPath(); c.moveTo(x,p.t); c.lineTo(x,h-p.b); c.stroke(); }
+  c.strokeStyle='#94a3b8'; c.beginPath(); c.moveTo(p.l,p.t); c.lineTo(p.l,h-p.b); c.lineTo(w-p.r,h-p.b); c.stroke();
+  c.fillStyle='#475569'; c.font='10px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; c.textAlign='right'; c.textBaseline='middle';
+  for(let i=0;i<=4;i++){ const val=maxY-i*(maxY-minY)/4, y=p.t+i*(h-p.t-p.b)/4; c.fillText(formatTick(val),p.l-6,y); }
+  c.textAlign='center'; c.textBaseline='top'; c.fillText('0 s',p.l,h-p.b+8); c.fillText(`${plotDuration.toFixed(1)} s`,w-p.r,h-p.b+8);
+  c.save(); c.translate(12,(p.t+h-p.b)/2); c.rotate(-Math.PI/2); c.textAlign='center'; c.fillText(titleY,0,0); c.restore();
+  return p;
+}
+function formatTick(v){ if(Math.abs(v)>=10) return v.toFixed(0); if(Math.abs(v)>=1) return v.toFixed(1); return v.toFixed(2); }
+function xMap(t,p,can){ return p.l + clamp(t/plotDuration,0,1)*(can.width-p.l-p.r); }
+function yMap(v,min,max,p,can){ return p.t + (1-(v-min)/(max-min))*(can.height-p.t-p.b); }
+function plotSeries(c,can,data,getY,min,max,color,width=2.2){ if(data.length<2) return; const p=c._plotPad; c.save(); c.strokeStyle=color; c.lineWidth=width; c.lineJoin='round'; c.lineCap='round'; c.beginPath(); let started=false; for(const d of data){ if(d.t>plotDuration) continue; const x=xMap(d.t,p,can), y=yMap(getY(d),min,max,p,can); if(!started){ c.moveTo(x,y); started=true; } else c.lineTo(x,y); } c.stroke(); c.restore(); }
+function label(c,x,y,color,text){ c.save(); c.fillStyle=color; c.font='11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; c.fillText(text,x,y); c.restore(); }
+function drawCharts(){
+  let p=drawChartFrame(heightCtx,heightCanvas,'m',0,Math.max(0.65,params.drop*1.35)); heightCtx._plotPad=p;
+  plotSeries(heightCtx,heightCanvas,sim.trace,d=>d.ballHeight,0,Math.max(0.65,params.drop*1.35),'#2563eb',2.4);
+  p=drawChartFrame(surfaceCtx,surfaceCanvas,'m',-0.03,0.06); surfaceCtx._plotPad=p;
+  plotSeries(surfaceCtx,surfaceCanvas,sim.trace,d=>d.surface,-0.03,0.06,'#64748b',2.4);
+  const Emax=Math.max(0.5,sim.initialEnergy*1.08); p=drawChartFrame(energyCtx,energyCanvas,'J',0,Emax); energyCtx._plotPad=p;
+  plotSeries(energyCtx,energyCanvas,sim.energyTrace,d=>d.trans,0,Emax,'#2563eb',2.1);
+  plotSeries(energyCtx,energyCanvas,sim.energyTrace,d=>d.modes,0,Emax,'#d97706',2.1);
+  plotSeries(energyCtx,energyCanvas,sim.energyTrace,d=>d.grav,0,Emax,'#047857',2.1);
+  label(energyCtx,54,15,'#2563eb','translation'); label(energyCtx,125,15,'#d97706','vibration'); label(energyCtx,190,15,'#047857','gravitational');
+}
+function quickRebound(overrides={},tmax=2.2,dt=0.0005,base=params){ const p=derive({...base,...overrides}); const s=new Simulator(p); const n=Math.floor(tmax/dt); for(let i=0;i<n;i++) s.step(dt); return Math.min(1.25,s.ratio()); }
+function scheduleCompare(){ clearTimeout(compareTimer); compareTimer=setTimeout(runCompare,180); }
+function runCompare(){ const ball=quickRebound({surfFreq:90,surfMass:2.0,surfDamp:0.03},1.8,0.00055); const surf=quickRebound({ballFreq:90,ballDamp:0.005},1.8,0.00055); const both=quickRebound({},2.2,0.00050); setBar(ro.barBall,ro.soloBall,ball); setBar(ro.barSurf,ro.soloSurf,surf); setBar(ro.barBoth,ro.soloBoth,both); }
+function setBar(bar,label,val){ bar.style.width=`${Math.round(Math.min(1,val)*100)}%`; label.textContent=`${val.toFixed(2)}×`; }
+function scanLandscape(){
+  const nX=201,nY=201,minB=5,maxB=90,minS=5,maxS=90;
+  const token=++scanToken;
+  const scanBase={...params};
+  const fixedKey=scanFixedKey(scanBase);
+  currentHeat={cells:[],nX,nY,minB,maxB,minS,maxS,best:{r:Infinity,fb:0,fs:0},highest:{r:-Infinity,fb:0,fs:0},running:true,fixedKey};
+  drawHeatmap(); let j=0;
+  function row(){
+    if(token!==scanToken) return;
+    for(let i=0;i<nX;i++){
+      const fb=minB+i*(maxB-minB)/(nX-1), fs=maxS-j*(maxS-minS)/(nY-1);
+      const r=quickRebound({ballFreq:fb,surfFreq:fs},2.2,0.00075,scanBase);
+      currentHeat.cells.push({i,j,fb,fs,r});
+      if(r<currentHeat.best.r) currentHeat.best={r,fb,fs};
+      if(r>currentHeat.highest.r) currentHeat.highest={r,fb,fs};
+    }
+    drawHeatmap(); j++;
+    if(j<nY) setTimeout(row,0); else { currentHeat.running=false; drawHeatmap(); }
+  }
+  setTimeout(row,20);
+}
+function drawHeatmap(){
+  const c=heatCtx,w=heatmap.width,h=heatmap.height;
+  c.clearRect(0,0,w,h); c.fillStyle='#fff'; c.fillRect(0,0,w,h);
+  const pad={l:90,r:28,t:24,b:70};
+  const availW=w-pad.l-pad.r, availH=h-pad.t-pad.b;
+  const side=Math.min(availW,availH);
+  const x0=pad.l + (availW-side)/2;
+  const y0=pad.t + (availH-side)/2;
+  c.strokeStyle='#d8dee9'; c.lineWidth=1; c.strokeRect(x0,y0,side,side);
+  if(currentHeat && currentHeat.fixedKey===scanFixedKey(params)){
+    const {cells,nX,nY,minB,maxB,minS,maxS,best,highest}=currentHeat, cw=side/nX, ch=side/nY;
+    for(const cell of cells){ c.fillStyle=heatColour(cell.r); c.fillRect(x0+cell.i*cw,y0+cell.j*ch,Math.ceil(cw)+1,Math.ceil(ch)+1); }
+    marker(x0+(params.ballFreq-minB)/(maxB-minB)*side, y0+(maxS-params.surfFreq)/(maxS-minS)*side, '#ffffff', '#111827', 7);
+    if(isFinite(best.r)) plusMarker(x0+(best.fb-minB)/(maxB-minB)*side, y0+(maxS-best.fs)/(maxS-minS)*side, '#047857');
+    if(isFinite(highest.r)) xMarker(x0+(highest.fb-minB)/(maxB-minB)*side, y0+(maxS-highest.fs)/(maxS-minS)*side, '#b91c1c');
+  } else {
+    c.fillStyle='#475569'; c.font='18px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; c.textAlign='center'; c.fillText('Frequency scan not yet calculated',w/2,h/2-8);
+  }
+  axes(c,w,h,x0,y0,side);
+}
+function axes(c,w,h,x0,y0,side){
+  c.save(); c.fillStyle='#334155'; c.strokeStyle='#94a3b8'; c.lineWidth=1; c.font='12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'; c.textAlign='center'; c.textBaseline='top';
+  for(let i=0;i<=5;i++){ const val=5+i*(90-5)/5, x=x0+i*side/5; c.beginPath(); c.moveTo(x,y0+side); c.lineTo(x,y0+side+5); c.stroke(); c.fillText(val.toFixed(0),x,y0+side+9); }
+  c.textBaseline='middle'; c.textAlign='right';
+  for(let i=0;i<=5;i++){ const val=90-i*(90-5)/5, y=y0+i*side/5; c.beginPath(); c.moveTo(x0-5,y); c.lineTo(x0,y); c.stroke(); c.fillText(val.toFixed(0),x0-9,y); }
+  c.textAlign='center'; c.textBaseline='bottom'; c.font='13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+  c.fillText('Ball natural frequency, Hz',x0+side/2,h-12);
+  c.save(); c.translate(22,y0+side/2); c.rotate(-Math.PI/2); c.fillText('Surface natural frequency, Hz',0,0); c.restore();
+  c.restore();
+}
+function heatColour(r){
+  const q=clamp(Math.pow(r/1.25,0.78),0,1);
+  const stops=[
+    [0.00,33,102,227],
+    [0.22,122,168,255],
+    [0.50,248,250,252],
+    [0.78,242,174,73],
+    [1.00,196,69,28]
+  ];
+  for(let i=0;i<stops.length-1;i++){
+    if(q>=stops[i][0] && q<=stops[i+1][0]){
+      const a=stops[i],b=stops[i+1],u=(q-a[0])/(b[0]-a[0]);
+      return `rgb(${Math.round(a[1]+(b[1]-a[1])*u)},${Math.round(a[2]+(b[2]-a[2])*u)},${Math.round(a[3]+(b[3]-a[3])*u)})`;
+    }
+  }
+  return '#c4451c';
+}
+function marker(x,y,fill,stroke,r){ const c=heatCtx; c.save(); c.fillStyle=fill; c.strokeStyle=stroke; c.lineWidth=2; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); c.stroke(); c.restore(); }
+function plusMarker(x,y,color){ const c=heatCtx; c.save(); c.strokeStyle=color; c.lineWidth=3; c.lineCap='round'; c.beginPath(); c.moveTo(x-9,y); c.lineTo(x+9,y); c.moveTo(x,y-9); c.lineTo(x,y+9); c.stroke(); c.restore(); }
+function xMarker(x,y,color){ const c=heatCtx; c.save(); c.strokeStyle=color; c.lineWidth=3; c.lineCap='round'; c.beginPath(); c.moveTo(x-8,y-8); c.lineTo(x+8,y+8); c.moveTo(x+8,y-8); c.lineTo(x-8,y+8); c.stroke(); c.restore(); }
+function frame(stamp){ const realDt=(stamp-lastStamp)/1000; lastStamp=stamp; integrate(realDt); drawWorld(); drawCharts(); requestAnimationFrame(frame); }
+function bind(){
+  document.getElementById('playPause').addEventListener('click',()=>{ playing=!playing; document.getElementById('playPause').textContent=playing?'Pause':'Play'; });
+  document.getElementById('reset').addEventListener('click',()=>{ resetTrial(); scheduleCompare(); });
+  document.getElementById('scan').addEventListener('click',scanLandscape);
+  document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>setPreset(b.dataset.preset)));
+  ids.forEach(id=>{
+    el[id].addEventListener('input',()=>{
+      document.querySelectorAll('.preset').forEach(b=>b.setAttribute('aria-pressed','false'));
+      const fixedChanged=!['ballFreq','surfFreq','speed'].includes(id);
+      updateReadouts();
+      if(fixedChanged) invalidateScan();
+      if(id!=='speed'){
+        clearTimeout(resetTimer);
+        resetTimer=setTimeout(()=>{ resetTrial(); scheduleCompare(); },80);
+      }
+    });
+    el[id].addEventListener('change',()=>{
+      const fixedChanged=!['ballFreq','surfFreq','speed'].includes(id);
+      updateReadouts();
+      if(id!=='speed'){
+        resetTrial(); scheduleCompare();
+        if(fixedChanged) scheduleScan(350);
+      }
+    });
+  });
+}
+bind(); setPreset('dead'); drawHeatmap(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
