@@ -438,10 +438,6 @@ input[type="range"] {
     </div>
     <div class="compareNote" id="compareHint">Rebound ratio = highest free-flight height after first impact ÷ drop height.</div>
   </aside>
-<details class="tool-methodology"><summary>Model and methodology</summary>
-<h3>Model</h3><p>A one-dimensional toy model represents the ball as two equal masses coupled by a spring and damper. A third, spring-mounted mass represents the surface. Gravity acts on the ball. During overlap an elastic spring contact force acts between the lower ball mass and surface; the force is clipped at zero so contact cannot pull them together.</p>
-<h3>Assumptions and limitations</h3><p>The simulation updates velocities before positions using a finite time step. It omits three-dimensional deformation, rotation and material-specific contact mechanics. Presets illustrate behaviour of this model and are not fitted material measurements. The displayed rebound ratio is the largest recorded centre-of-mass height after separation divided by the drop parameter. The frequency scan uses a finite 2.2-second window and caps its displayed ratio at 1.25.</p>
-<h3>References and implementation</h3><p>The <a href="https://github.com/DavidFreeborn/bouncing-simulator">source repository</a> records the force law, integration and rebound definition. Interpret the demonstration as coupled damped oscillators, not as a validated prediction for a particular ball or surface.</p></details>
 </main>
 <section class="scanCard">
   <div class="scanInner">
@@ -463,6 +459,12 @@ input[type="range"] {
     <canvas id="heatmap" width="1100" height="1100" aria-label="Frequency scan heatmap"></canvas>
   </div>
 </section>
+<div class="scanCard methodology-footer">
+<details class="tool-methodology"><summary>Model and methodology</summary>
+<h3>Model</h3><p>A one-dimensional toy model represents the ball as two equal masses coupled by a spring and damper. A third, spring-mounted mass represents the surface. Gravity acts on the ball. During overlap an elastic spring contact force acts between the lower ball mass and surface; the force is clipped at zero so contact cannot pull them together.</p>
+<h3>Assumptions and limitations</h3><p>The simulation updates velocities before positions using a finite time step. It omits three-dimensional deformation, rotation and material-specific contact mechanics. Presets illustrate behaviour of this model and are not fitted material measurements. The displayed rebound ratio is the largest recorded centre-of-mass height after separation divided by the drop parameter. The frequency scan uses a finite 2.2-second window and caps its displayed ratio at 1.25.</p>
+<h3>References and implementation</h3><p>The <a href="https://github.com/DavidFreeborn/bouncing-simulator">source repository</a> records the force law, integration and rebound definition. Interpret the demonstration as coupled damped oscillators, not as a validated prediction for a particular ball or surface.</p></details>
+</div>
 <script>
 (() => {
 'use strict';
